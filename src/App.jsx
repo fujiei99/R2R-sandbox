@@ -11,6 +11,7 @@ const App = () => {
   // Interactive Controls State
   const [samplingRate, setSamplingRate] = useState(1.0); // 0.0 to 1.0, step 0.1
   const [lambda, setLambda] = useState(0.3); // 0.0 to 1.0, step 0.1
+  const [snrMultiplier, setSnrMultiplier] = useState(1.0); // Maps to slider 0.1 to 3.0
 
   // UI State
   const [isLoading, setIsLoading] = useState(false);
@@ -80,7 +81,10 @@ const App = () => {
       const original_actual = row.Actual_Removal;
       const new_actual = original_actual + real_A * (new_X - real_X);
 
-      const noise = row['FFW-FBW'] - original_actual;
+      // SNR Scaling: Apply the slider multiplier to the noise factor
+      const base_noise = row['FFW-FBW'] - original_actual;
+      const noise = base_noise * (1 / snrMultiplier);
+
       const new_measured = new_actual + noise;
       const new_FBW = ffw - new_measured;
       const bias = new_FBW - fbw_target;
@@ -118,15 +122,16 @@ const App = () => {
     const lcl = mean - 3 * sigma;
     trace = trace.map(t => ({ ...t, UCL: ucl, LCL: lcl, Target: 0 }));
 
-    // If SNR is zero or missing, try grab from source or mock
-    const snr = mData[0]?.AR1_Sigma / mData[0]?.Process_Noise_Std || 0;
+    // Recalculate dynamic SNR based on scaled noise
+    const base_snr = mData[0]?.AR1_Sigma / mData[0]?.Process_Noise_Std || 0;
+    const current_snr = base_snr * snrMultiplier;
 
     return {
       trace: trace, // Keep full trace for viz
-      summary: { mean, sigma, snr: snr.toFixed(2), rmse: Math.sqrt(mean * mean + variance).toFixed(3) }
+      summary: { mean, sigma, snr: current_snr.toFixed(2), rmse: Math.sqrt(mean * mean + variance).toFixed(3) }
     };
 
-  }, [data, selectedMachine, samplingRate, lambda]);
+  }, [data, selectedMachine, samplingRate, lambda, snrMultiplier]);
 
 
   // 3. Multi-point simulation for Charts across Lambdas (fixing Sampling Rate)
@@ -162,7 +167,7 @@ const App = () => {
       res.push({ lambda: parseFloat(l.toFixed(1)), mean, sigma, rmse: Math.sqrt(mean * mean + sigma * sigma) });
     }
     return res;
-  }, [data, selectedMachine, samplingRate]);
+  }, [data, selectedMachine, samplingRate, snrMultiplier]);
 
 
   // 4. Multi-point simulation for Charts across Sampling Rates (fixing Lambda)
@@ -197,7 +202,7 @@ const App = () => {
       res.push({ sr: sr * 10, mean, sigma, rmse: Math.sqrt(mean * mean + sigma * sigma) });
     }
     return res;
-  }, [data, selectedMachine, lambda]);
+  }, [data, selectedMachine, lambda, snrMultiplier]);
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-amber-200 pb-12">
@@ -240,6 +245,24 @@ const App = () => {
             <div className="flex items-center gap-2 mb-6">
               <SlidersHorizontal className="w-5 h-5 text-amber-600" />
               <h2 className="text-lg font-bold text-stone-800">Parameters</h2>
+            </div>
+
+            {/* SNR Slider */}
+            <div className="mb-8">
+              <div className="flex justify-between items-end mb-2">
+                <label className="text-sm font-bold text-stone-700">S/N Ratio Scale</label>
+                <span className="text-lg font-black text-amber-600">{snrMultiplier.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range" min="0.1" max="5.0" step="0.1"
+                value={snrMultiplier}
+                onChange={(e) => setSnrMultiplier(parseFloat(e.target.value))}
+                className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+              />
+              <div className="flex justify-between text-xs text-stone-400 mt-1 font-medium">
+                <span>0.1 (High Noise)</span>
+                <span>5.0 (Clear)</span>
+              </div>
             </div>
 
             {/* Lambda Slider */}
@@ -337,8 +360,30 @@ const App = () => {
 
                   <Line yAxisId="left" type="monotone" dataKey="Bias" stroke="#1c1917" strokeWidth={1} dot={false} name="FBW Bias (Error)" />
                   <Line yAxisId="right" type="stepAfter" dataKey="up_B" stroke="#d97706" strokeWidth={3} dot={false} name="Controller up_B State" />
-                  <Line yAxisId="right" type="stepAfter" dataKey="up_B_raw_noise" stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 3" dot={false} name="Raw up_B (λ=1)" />
                   <Scatter yAxisId="left" dataKey="Sampled" name="Measurements" fill="#059669" opacity={0.5} shape="cross" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Raw Noise Baseline Chart */}
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-stone-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
+                <BarChart2 className="w-5 h-5 text-stone-400" /> Raw Noise Baseline (λ=1) vs. Controlled
+              </h2>
+            </div>
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={simulationResults.trace} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
+                  <XAxis dataKey="run" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} minTickGap={30} />
+                  <YAxis orientation="left" domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+
+                  <Line type="stepAfter" dataKey="up_B" stroke="#d97706" strokeWidth={3} dot={false} name="Current up_B (Filtered)" />
+                  <Line type="stepAfter" dataKey="up_B_raw_noise" stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 3" dot={false} name="Raw up_B (λ=1)" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -346,41 +391,77 @@ const App = () => {
 
           {/* Sweep Analysis Grids */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Lambda Impact Chart */}
+            {/* Lambda Impact Chart - Mean */}
             <div className="p-6 bg-white rounded-xl shadow-sm border border-stone-200">
               <h3 className="text-sm font-bold text-stone-800 mb-4 flex justify-between">
-                <span>KPI vs. Lambda Weight</span>
+                <span>Mean Bias vs. Lambda</span>
                 <span className="text-stone-400 font-normal">@ {samplingRate * 100}% Sampling</span>
               </h3>
-              <div className="h-48 w-full">
+              <div className="h-40 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={lambdaSweepData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                  <LineChart data={lambdaSweepData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                     <XAxis dataKey="lambda" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
                     <Tooltip />
-                    <Bar dataKey="sigma" fill="#f43f5e" name="Sigma (Spread)" radius={[2, 2, 0, 0]} barSize={20} />
                     <Line type="monotone" dataKey="mean" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Mean Error" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Lambda Impact Chart - Sigma */}
+            <div className="p-6 bg-white rounded-xl shadow-sm border border-stone-200">
+              <h3 className="text-sm font-bold text-stone-800 mb-4 flex justify-between">
+                <span>Sigma Spread vs. Lambda</span>
+                <span className="text-stone-400 font-normal">@ {samplingRate * 100}% Sampling</span>
+              </h3>
+              <div className="h-40 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={lambdaSweepData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
+                    <XAxis dataKey="lambda" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
+                    <Tooltip />
+                    <Bar dataKey="sigma" fill="#f43f5e" name="Sigma (Spread)" radius={[2, 2, 0, 0]} barSize={20} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Sampling Rate Impact Chart */}
+            {/* Sampling Rate Impact Chart - Mean */}
             <div className="p-6 bg-white rounded-xl shadow-sm border border-stone-200">
               <h3 className="text-sm font-bold text-stone-800 mb-4 flex justify-between">
-                <span>KPI vs. Sampling Rate</span>
+                <span>Mean Bias vs. Sampling Rate</span>
                 <span className="text-stone-400 font-normal">@ λ = {lambda.toFixed(1)}</span>
               </h3>
-              <div className="h-48 w-full">
+              <div className="h-40 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={samplingSweepData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                  <LineChart data={samplingSweepData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                     <XAxis dataKey="sr" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                     <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
                     <Tooltip />
-                    <Bar dataKey="sigma" fill="#3b82f6" name="Sigma (Spread)" radius={[2, 2, 0, 0]} barSize={20} />
                     <Line type="monotone" dataKey="mean" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Mean Error" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Sampling Rate Impact Chart - Sigma */}
+            <div className="p-6 bg-white rounded-xl shadow-sm border border-stone-200">
+              <h3 className="text-sm font-bold text-stone-800 mb-4 flex justify-between">
+                <span>Sigma Spread vs. Sampling Rate</span>
+                <span className="text-stone-400 font-normal">@ λ = {lambda.toFixed(1)}</span>
+              </h3>
+              <div className="h-40 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={samplingSweepData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
+                    <XAxis dataKey="sr" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                    <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
+                    <Tooltip />
+                    <Bar dataKey="sigma" fill="#3b82f6" name="Sigma (Spread)" radius={[2, 2, 0, 0]} barSize={20} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
