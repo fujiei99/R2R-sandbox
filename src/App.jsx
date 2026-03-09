@@ -19,7 +19,7 @@ const App = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/r2r_simulation_data.csv');
+      const response = await fetch('./r2r_simulation_data.csv');
       if (!response.ok) throw new Error("Could not fetch CSV");
 
       const csvText = await response.text();
