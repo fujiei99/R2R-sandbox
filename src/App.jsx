@@ -106,7 +106,7 @@ const App = () => {
         FBW: new_FBW,
         Bias: bias,
         up_B: exe_B,
-        up_B_raw_noise: exe_B_lambda_1,
+        on_target_b: exe_B_lambda_1,
         Sampled: was_sampled ? 1 : 0,
         noise_val: noise,
         actual_val: original_actual
@@ -354,7 +354,7 @@ const App = () => {
         {/* Right Column: Visualizations */}
         <div className="col-span-12 lg:col-span-9 space-y-6">
 
-          {/* Real-time SPC Chart */}
+          {/* SPC & Baseline Dual Chart */}
           <div className="p-6 bg-white rounded-xl shadow-sm border border-stone-200">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
@@ -362,44 +362,37 @@ const App = () => {
               </h2>
               <span className="text-xs font-medium px-2 py-1 bg-amber-50 text-amber-700 rounded-md">Live Preview</span>
             </div>
+
+            {/* Top Chart: SPC Trace */}
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={simulationResults.trace} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <ComposedChart data={simulationResults.trace} syncId="spcSync" margin={{ top: 10, right: 120, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
-                  <XAxis dataKey="run" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} minTickGap={30} />
+                  <XAxis dataKey="run" tick={false} axisLine={false} tickLine={false} />
                   <YAxis yAxisId="left" domain={[-simulationResults.yMax, simulationResults.yMax]} orientation="left" tick={{ fontSize: 10, fill: '#78716c' }} tickFormatter={(v) => v.toFixed(1)} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#d97706' }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '10px', right: 0, top: '50%', transform: 'translateY(-50%)' }} />
 
                   <Line isAnimationActive={false} yAxisId="left" type="monotone" dataKey="UCL" stroke="#f43f5e" strokeWidth={1} strokeDasharray="5 5" dot={false} name="UCL (+3σ)" />
                   <Line isAnimationActive={false} yAxisId="left" type="monotone" dataKey="Target" stroke="#ef4444" strokeWidth={2} dot={false} name="Target (0)" />
                   <Line isAnimationActive={false} yAxisId="left" type="monotone" dataKey="LCL" stroke="#f43f5e" strokeWidth={1} strokeDasharray="5 5" dot={false} name="LCL (-3σ)" />
-
                   <Line isAnimationActive={false} yAxisId="left" type="monotone" dataKey="Bias" stroke="#1c1917" strokeWidth={1} dot={false} name="FBW Bias (Error)" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-          </div>
 
-          {/* Raw Noise Baseline Chart */}
-          <div className="p-6 bg-white rounded-xl shadow-sm border border-stone-200">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
-                <BarChart2 className="w-5 h-5 text-stone-400" /> Raw Noise Baseline (λ=1) vs. Controlled
-              </h2>
-            </div>
-            <div className="h-48 w-full">
+            {/* Bottom Chart: Baseline */}
+            <div className="h-40 w-full mt-2 pt-2 border-t border-stone-200">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={simulationResults.trace} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <ComposedChart data={simulationResults.trace} syncId="spcSync" margin={{ top: 10, right: 120, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                   <XAxis dataKey="run" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} minTickGap={30} />
                   <YAxis orientation="left" domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '10px', right: 0, top: '50%', transform: 'translateY(-50%)' }} />
 
                   <Line isAnimationActive={false} type="stepAfter" dataKey="up_B" stroke="#d97706" strokeWidth={3} dot={false} name="Current up_B (Filtered)" />
-                  <Line isAnimationActive={false} type="stepAfter" dataKey="up_B_raw_noise" stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 3" dot={false} name="Raw up_B (λ=1)" />
+                  <Line isAnimationActive={false} type="stepAfter" dataKey="on_target_b" stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 3" dot={false} name="on_target_b (λ=1)" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
