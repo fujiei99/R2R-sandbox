@@ -107,7 +107,9 @@ const App = () => {
         Bias: bias,
         up_B: exe_B,
         up_B_raw_noise: exe_B_lambda_1,
-        Sampled: was_sampled ? 1 : 0
+        Sampled: was_sampled ? 1 : 0,
+        noise_val: noise,
+        actual_val: original_actual
       });
     }
 
@@ -122,13 +124,25 @@ const App = () => {
     const lcl = mean - 3 * sigma;
     trace = trace.map(t => ({ ...t, UCL: ucl, LCL: lcl, Target: 0 }));
 
-    // Recalculate dynamic SNR based on scaled noise
-    const base_snr = mData[0]?.AR1_Sigma / mData[0]?.Process_Noise_Std || 0;
-    const current_snr = base_snr * snrMultiplier;
+    // Find symmetric Y-max
+    const maxVal = Math.max(Math.abs(ucl), Math.abs(lcl), ...valid_trace.map(t => Math.abs(t.Bias)));
+    const yMax = Math.ceil(maxVal * 1.1);
+
+    // Calculate actual SNR of the generated payload in dB
+    const noise_mean = valid_trace.reduce((acc, val) => acc + val.noise_val, 0) / valid_trace.length;
+    const noise_var = valid_trace.reduce((acc, val) => acc + Math.pow(val.noise_val - noise_mean, 2), 0) / valid_trace.length;
+    const signal_mean = valid_trace.reduce((acc, val) => acc + val.actual_val, 0) / valid_trace.length;
+    const signal_var = valid_trace.reduce((acc, val) => acc + Math.pow(val.actual_val - signal_mean, 2), 0) / valid_trace.length;
+
+    let snr_db = 0;
+    if (noise_var > 0 && signal_var > 0) {
+      snr_db = 10 * Math.log10(signal_var / noise_var);
+    }
 
     return {
       trace: trace, // Keep full trace for viz
-      summary: { mean, sigma, snr: current_snr.toFixed(2), rmse: Math.sqrt(mean * mean + variance).toFixed(3) }
+      yMax: yMax,
+      summary: { mean, sigma, snr: snr_db.toFixed(2), rmse: Math.sqrt(mean * mean + variance).toFixed(3) }
     };
 
   }, [data, selectedMachine, samplingRate, lambda, snrMultiplier]);
@@ -150,7 +164,9 @@ const App = () => {
         const row = mData[i];
         let new_X = Math.max(0.1, (row['FFW-Target'] - exe_B) / row.Model_A);
         const new_actual = row.Actual_Removal + row.Real_A * (new_X - row.knob_Time);
-        const new_measured = new_actual + (row['FFW-FBW'] - row.Actual_Removal);
+        const base_noise = row['FFW-FBW'] - row.Actual_Removal;
+        const noise = base_noise * (1 / snrMultiplier);
+        const new_measured = new_actual + noise;
         const new_FBW = row.FFW - new_measured;
 
         if (i >= 50) errors.push(new_FBW - row.FBW_Target);
@@ -185,7 +201,9 @@ const App = () => {
         const row = mData[i];
         let new_X = Math.max(0.1, (row['FFW-Target'] - exe_B) / row.Model_A);
         const new_actual = row.Actual_Removal + row.Real_A * (new_X - row.knob_Time);
-        const new_measured = new_actual + (row['FFW-FBW'] - row.Actual_Removal);
+        const base_noise = row['FFW-FBW'] - row.Actual_Removal;
+        const noise = base_noise * (1 / snrMultiplier);
+        const new_measured = new_actual + noise;
         const new_FBW = row.FFW - new_measured;
 
         if (i >= 50) errors.push(new_FBW - row.FBW_Target);
@@ -349,17 +367,16 @@ const App = () => {
                 <ComposedChart data={simulationResults.trace} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                   <XAxis dataKey="run" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} minTickGap={30} />
-                  <YAxis yAxisId="left" domain={[-15, 15]} orientation="left" tick={{ fontSize: 10, fill: '#78716c' }} tickFormatter={(v) => v.toFixed(1)} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" domain={[-simulationResults.yMax, simulationResults.yMax]} orientation="left" tick={{ fontSize: 10, fill: '#78716c' }} tickFormatter={(v) => v.toFixed(1)} axisLine={false} tickLine={false} />
                   <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#d97706' }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
 
-                  <Line yAxisId="left" type="monotone" dataKey="UCL" stroke="#f43f5e" strokeWidth={1} strokeDasharray="5 5" dot={false} name="UCL (+3σ)" />
-                  <Line yAxisId="left" type="monotone" dataKey="Target" stroke="#ef4444" strokeWidth={2} dot={false} name="Target (0)" />
-                  <Line yAxisId="left" type="monotone" dataKey="LCL" stroke="#f43f5e" strokeWidth={1} strokeDasharray="5 5" dot={false} name="LCL (-3σ)" />
+                  <Line isAnimationActive={false} yAxisId="left" type="monotone" dataKey="UCL" stroke="#f43f5e" strokeWidth={1} strokeDasharray="5 5" dot={false} name="UCL (+3σ)" />
+                  <Line isAnimationActive={false} yAxisId="left" type="monotone" dataKey="Target" stroke="#ef4444" strokeWidth={2} dot={false} name="Target (0)" />
+                  <Line isAnimationActive={false} yAxisId="left" type="monotone" dataKey="LCL" stroke="#f43f5e" strokeWidth={1} strokeDasharray="5 5" dot={false} name="LCL (-3σ)" />
 
-                  <Line yAxisId="left" type="monotone" dataKey="Bias" stroke="#1c1917" strokeWidth={1} dot={false} name="FBW Bias (Error)" />
-                  <Scatter yAxisId="left" dataKey="Sampled" name="Measurements" fill="#059669" opacity={0.5} shape="cross" />
+                  <Line isAnimationActive={false} yAxisId="left" type="monotone" dataKey="Bias" stroke="#1c1917" strokeWidth={1} dot={false} name="FBW Bias (Error)" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -378,11 +395,11 @@ const App = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                   <XAxis dataKey="run" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} minTickGap={30} />
                   <YAxis orientation="left" domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
 
-                  <Line type="stepAfter" dataKey="up_B" stroke="#d97706" strokeWidth={3} dot={false} name="Current up_B (Filtered)" />
-                  <Line type="stepAfter" dataKey="up_B_raw_noise" stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 3" dot={false} name="Raw up_B (λ=1)" />
+                  <Line isAnimationActive={false} type="stepAfter" dataKey="up_B" stroke="#d97706" strokeWidth={3} dot={false} name="Current up_B (Filtered)" />
+                  <Line isAnimationActive={false} type="stepAfter" dataKey="up_B_raw_noise" stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 3" dot={false} name="Raw up_B (λ=1)" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -402,8 +419,8 @@ const App = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                     <XAxis dataKey="lambda" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="mean" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Mean Error" />
+                    <Tooltip formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
+                    <Line isAnimationActive={false} type="monotone" dataKey="mean" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Mean Error" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -421,8 +438,8 @@ const App = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                     <XAxis dataKey="lambda" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
-                    <Tooltip />
-                    <Bar dataKey="sigma" fill="#f43f5e" name="Sigma (Spread)" radius={[2, 2, 0, 0]} barSize={20} />
+                    <Tooltip formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
+                    <Bar isAnimationActive={false} dataKey="sigma" fill="#f43f5e" name="Sigma (Spread)" radius={[2, 2, 0, 0]} barSize={20} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -440,8 +457,8 @@ const App = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                     <XAxis dataKey="sr" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                     <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="mean" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Mean Error" />
+                    <Tooltip formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
+                    <Line isAnimationActive={false} type="monotone" dataKey="mean" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Mean Error" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -459,8 +476,8 @@ const App = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                     <XAxis dataKey="sr" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                     <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
-                    <Tooltip />
-                    <Bar dataKey="sigma" fill="#3b82f6" name="Sigma (Spread)" radius={[2, 2, 0, 0]} barSize={20} />
+                    <Tooltip formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
+                    <Bar isAnimationActive={false} dataKey="sigma" fill="#3b82f6" name="Sigma (Spread)" radius={[2, 2, 0, 0]} barSize={20} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
