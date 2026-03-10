@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Papa from 'papaparse';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Bar, Scatter } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Bar, Scatter, BarChart, Cell } from 'recharts';
 import { Settings, RefreshCw, BarChart2, Activity, Play, SlidersHorizontal } from 'lucide-react';
 
 const App = () => {
@@ -50,6 +50,26 @@ const App = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // 1.5 Calculate Base SNR Distribution across all Machines
+  const machineDistribution = useMemo(() => {
+    if (data.length === 0 || machines.length === 0) return [];
+
+    const dist = [];
+    machines.forEach(m => {
+      const mObj = data.find(d => d.Machine_ID === m);
+      if (mObj) {
+        const ar1 = mObj.AR1_Sigma || 0;
+        const noise = mObj.Process_Noise_Std || 1;
+        dist.push({
+          machine: m,
+          snr: parseFloat((ar1 / noise).toFixed(2))
+        });
+      }
+    });
+
+    return dist.sort((a, b) => a.snr - b.snr);
+  }, [data, machines]);
 
   // 2. Playback Simulation Engine
   const simulationResults = useMemo(() => {
@@ -236,14 +256,9 @@ const App = () => {
         <div className="flex gap-4 items-center">
           {machines.length > 0 && (
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-stone-600">Active Machine: </label>
-              <select
-                value={selectedMachine}
-                onChange={(e) => setSelectedMachine(e.target.value)}
-                className="bg-stone-100 border-none rounded-md px-3 py-1.5 focus:ring-2 focus:ring-amber-500 text-sm font-semibold"
-              >
-                {machines.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
+              <span className="text-sm font-semibold text-stone-600 bg-stone-100 px-3 py-1.5 rounded-md border border-stone-200">
+                Active: <span className="text-amber-600">{selectedMachine}</span>
+              </span>
             </div>
           )}
           <button onClick={loadData} className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-colors" title="Reload Data">
@@ -257,6 +272,30 @@ const App = () => {
 
         {/* Left Column: Controls & Stats */}
         <div className="col-span-12 lg:col-span-3 space-y-6">
+
+          {/* Machine Selection Chart */}
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-stone-200">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="w-5 h-5 text-amber-600" />
+              <h2 className="text-lg font-bold text-stone-800">Machine Selector</h2>
+            </div>
+            <div className="text-xs text-stone-500 mb-4 font-medium">Click a bar to switch machine profile based on its native SNR distribution.</div>
+            <div className="h-40 w-full cursor-pointer">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={machineDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
+                  <XAxis dataKey="machine" tick={{ fontSize: 9, fill: '#78716c' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
+                  <Tooltip cursor={{ fill: '#f5f5f4' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }} formatter={(v) => [`${v} Base SNR`, 'SNR']} />
+                  <Bar dataKey="snr" radius={[2, 2, 0, 0]} onClick={(data) => setSelectedMachine(data.machine)} isAnimationActive={false}>
+                    {machineDistribution.map((entry, index) => (
+                      <Cell cursor="pointer" fill={entry.machine === selectedMachine ? '#d97706' : '#e2e8f0'} key={`cell-${index}`} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
           {/* Control Panel */}
           <div className="p-6 bg-white rounded-xl shadow-sm border border-stone-200">
