@@ -1,16 +1,24 @@
-# React + Vite
+# R2R Simulation Sandbox
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive UI playground for visualizing Run-to-Run (R2R) control simulations. This tool allows users to explore the impact of sampling rates, Signal-to-Noise (S/N) ratios, and EWMA filter weights (λ) on R2R control results in real-time.
 
-Currently, two official plugins are available:
+🚀 **[Launch Live Playground](https://fujiei99.github.io/R2R-sandbox/)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+- **Interactive Parameters**: Sliders for S/N Ratio, λ (EWMA Weight), and Sampling Rate.
+- **Playback SPC Trace**: Real-time rendering of process bias and control limits (UCL/LCL).
+- **Raw Noise Comparison**: A dedicated chart to compare the filtered control state against the raw baseline noise (λ=1).
+- **KPI Sweep Analysis**: Deep dive into how Mean Bias and Sigma Spread are affected across the entire spectrum of $\lambda$ weights and Sampling Rates.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Local Development
 
-## Expanding the ESLint configuration
+```bash
+# Install dependencies
+npm install
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+# Start development server
+npm run dev
+```
+
+Built with **React**, **Vite**, **Tailwind CSS**, and **Recharts**.
