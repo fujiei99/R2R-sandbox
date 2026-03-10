@@ -349,17 +349,16 @@ const App = () => {
                 <ComposedChart data={simulationResults.trace} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                   <XAxis dataKey="run" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} minTickGap={30} />
-                  <YAxis yAxisId="left" domain={[-15, 15]} orientation="left" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" domain={[-15, 15]} orientation="left" tick={{ fontSize: 10, fill: '#78716c' }} tickFormatter={(v) => v.toFixed(1)} axisLine={false} tickLine={false} />
                   <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#d97706' }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
 
                   <Line yAxisId="left" type="monotone" dataKey="UCL" stroke="#f43f5e" strokeWidth={1} strokeDasharray="5 5" dot={false} name="UCL (+3σ)" />
-                  <Line yAxisId="left" type="monotone" dataKey="Target" stroke="#10b981" strokeWidth={2} dot={false} name="Target (0)" />
+                  <Line yAxisId="left" type="monotone" dataKey="Target" stroke="#ef4444" strokeWidth={2} dot={false} name="Target (0)" />
                   <Line yAxisId="left" type="monotone" dataKey="LCL" stroke="#f43f5e" strokeWidth={1} strokeDasharray="5 5" dot={false} name="LCL (-3σ)" />
 
                   <Line yAxisId="left" type="monotone" dataKey="Bias" stroke="#1c1917" strokeWidth={1} dot={false} name="FBW Bias (Error)" />
-                  <Line yAxisId="right" type="stepAfter" dataKey="up_B" stroke="#d97706" strokeWidth={3} dot={false} name="Controller up_B State" />
                   <Scatter yAxisId="left" dataKey="Sampled" name="Measurements" fill="#059669" opacity={0.5} shape="cross" />
                 </ComposedChart>
               </ResponsiveContainer>
