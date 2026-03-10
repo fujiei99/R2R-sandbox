@@ -57,13 +57,23 @@ const App = () => {
 
     const dist = [];
     machines.forEach(m => {
-      const mObj = data.find(d => d.Machine_ID === m);
-      if (mObj) {
-        const ar1 = mObj.AR1_Sigma || 0;
-        const noise = mObj.Process_Noise_Std || 1;
+      const mObj = data.filter(d => d.Machine_ID === m && d.Run_Num >= 50);
+      if (mObj.length > 0) {
+        const sig_mean = mObj.reduce((a, b) => a + b.Actual_Removal, 0) / mObj.length;
+        const sig_var = mObj.reduce((a, b) => a + Math.pow(b.Actual_Removal - sig_mean, 2), 0) / mObj.length;
+
+        const noise_arr = mObj.map(d => (d['FFW-FBW'] - d.Actual_Removal));
+        const noise_mean = noise_arr.reduce((a, b) => a + b, 0) / noise_arr.length;
+        const noise_var = noise_arr.reduce((a, b) => a + Math.pow(b - noise_mean, 2), 0) / noise_arr.length;
+
+        let snr_db = 0;
+        if (noise_var > 0 && sig_var > 0) {
+          snr_db = 10 * Math.log10(sig_var / noise_var);
+        }
+
         dist.push({
           machine: m,
-          snr: parseFloat((ar1 / noise).toFixed(2))
+          snr: parseFloat(snr_db.toFixed(2))
         });
       }
     });
@@ -286,10 +296,10 @@ const App = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                   <XAxis dataKey="machine" tick={{ fontSize: 9, fill: '#78716c' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{ fill: '#f5f5f4' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }} formatter={(v) => [`${v} Base SNR`, 'SNR']} />
-                  <Bar dataKey="snr" radius={[2, 2, 0, 0]} onClick={(data) => setSelectedMachine(data.machine)} isAnimationActive={false}>
+                  <Tooltip cursor={{ fill: '#f5f5f4' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }} formatter={(v) => [`${v} dB`, 'Base SNR']} />
+                  <Bar dataKey="snr" radius={[2, 2, 0, 0]} onClick={(data) => { const m = data?.payload?.machine || data?.machine; if (m) setSelectedMachine(m); }} isAnimationActive={false}>
                     {machineDistribution.map((entry, index) => (
-                      <Cell cursor="pointer" fill={entry.machine === selectedMachine ? '#d97706' : '#e2e8f0'} key={`cell-${index}`} />
+                      <Cell onClick={() => setSelectedMachine(entry.machine)} cursor="pointer" fill={entry.machine === selectedMachine ? '#d97706' : '#e2e8f0'} key={`cell-${index}`} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -408,7 +418,7 @@ const App = () => {
                 <ComposedChart data={simulationResults.trace} syncId="spcSync" margin={{ top: 10, right: 120, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                   <XAxis dataKey="run" tick={false} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="left" domain={[-simulationResults.yMax, simulationResults.yMax]} orientation="left" tick={{ fontSize: 10, fill: '#78716c' }} tickFormatter={(v) => v.toFixed(1)} axisLine={false} tickLine={false} />
+                  <YAxis width={40} yAxisId="left" domain={[-simulationResults.yMax, simulationResults.yMax]} orientation="left" tick={{ fontSize: 10, fill: '#78716c' }} tickFormatter={(v) => v.toFixed(1)} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
                   <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '10px', right: 0, top: '50%', transform: 'translateY(-50%)' }} />
 
@@ -426,7 +436,7 @@ const App = () => {
                 <ComposedChart data={simulationResults.trace} syncId="spcSync" margin={{ top: 10, right: 120, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
                   <XAxis dataKey="run" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} minTickGap={30} />
-                  <YAxis orientation="left" domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
+                  <YAxis width={40} orientation="left" domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
                   <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '10px', right: 0, top: '50%', transform: 'translateY(-50%)' }} />
 
