@@ -78,7 +78,24 @@ const App = () => {
       }
     });
 
-    return dist.sort((a, b) => a.snr - b.snr);
+    // Group into 5 dB bins
+    const binsMap = new Map();
+    dist.forEach(d => {
+      // Create fixed 5 dB width buckets
+      const binStart = Math.floor(d.snr / 5) * 5;
+      const binName = `${binStart}-${binStart + 5}`;
+
+      if (!binsMap.has(binName)) {
+        binsMap.set(binName, { binName, binStart, count: 0, machines: [] });
+      }
+
+      const bin = binsMap.get(binName);
+      bin.count += 1;
+      bin.machines.push({ id: d.machine, snr: d.snr });
+    });
+
+    const finalDistribution = Array.from(binsMap.values()).sort((a, b) => a.binStart - b.binStart);
+    return finalDistribution;
   }, [data, machines]);
 
   // 2. Playback Simulation Engine
@@ -289,18 +306,43 @@ const App = () => {
               <Activity className="w-5 h-5 text-amber-600" />
               <h2 className="text-lg font-bold text-stone-800">Machine Selector</h2>
             </div>
-            <div className="text-xs text-stone-500 mb-4 font-medium">Click a bar to switch machine profile based on its native SNR distribution.</div>
+            <div className="text-xs text-stone-500 mb-4 font-medium">Click a bar to cycle through machines grouped by Native SNR range.</div>
             <div className="h-40 w-full cursor-pointer">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={machineDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
-                  <XAxis dataKey="machine" tick={{ fontSize: 9, fill: '#78716c' }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="binName" tick={{ fontSize: 9, fill: '#78716c' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{ fill: '#f5f5f4' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }} formatter={(v) => [`${v} dB`, 'Base SNR']} />
-                  <Bar dataKey="snr" radius={[2, 2, 0, 0]} onClick={(data) => { const m = data?.payload?.machine || data?.machine; if (m) setSelectedMachine(m); }} isAnimationActive={false}>
-                    {machineDistribution.map((entry, index) => (
-                      <Cell onClick={() => setSelectedMachine(entry.machine)} cursor="pointer" fill={entry.machine === selectedMachine ? '#d97706' : '#e2e8f0'} key={`cell-${index}`} />
-                    ))}
+                  <Tooltip
+                    cursor={{ fill: '#f5f5f4' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                    labelFormatter={(label) => `${label} dB Range`}
+                    formatter={(v, name, props) => {
+                      const machList = props.payload.machines.map(m => m.id).join(', ');
+                      return [machList, `${v} Machines`];
+                    }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    radius={[2, 2, 0, 0]}
+                    isAnimationActive={false}
+                    onClick={(data) => {
+                      const bin = data?.payload || data;
+                      if (!bin || !bin.machines || bin.machines.length === 0) return;
+
+                      const ids = bin.machines.map(m => m.id);
+                      const currentIndex = ids.indexOf(selectedMachine);
+
+                      // Cycle to next machine, or pick first if not currently selected
+                      const nextIndex = currentIndex !== -1 ? (currentIndex + 1) % ids.length : 0;
+                      setSelectedMachine(ids[nextIndex]);
+                    }}
+                  >
+                    {machineDistribution.map((entry, index) => {
+                      // Highlight the bar if the currently active machine belongs to this bin
+                      const isActive = entry.machines.some(m => m.id === selectedMachine);
+                      return <Cell cursor="pointer" fill={isActive ? '#d97706' : '#e2e8f0'} key={`cell-${index}`} />;
+                    })}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
