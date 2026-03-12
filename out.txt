@@ -1,0 +1,165 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/code/R2R/R2R_simultion/r2r-sandbox[39m
+
+[90mstdout[2m | src/App.test.jsx[2m > [22m[2mR2R Sandbox App[2m > [22m[2mRendering[2m > [22m[2mshould render main application headers without crashing
+[22m[39m[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-amber-200 pb-12"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"px-8 py-5 border-b border-stone-200 bg-white sticky top-0 z-10 flex items-center justify-between shadow-sm"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<h1[39m
+            [33mclass[39m=[32m"text-2xl font-bold tracking-tight text-stone-800 flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-activity w-6 h-6 text-amber-600"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0mR2R Simulator Sandbox [0m
+            [36m<span[39m
+              [33mclass[39m=[32m"ml-2 text-xs font-medium px-2 py-1 bg-stone-100 rounded-full text-stone-500 border border-stone-200"[39m
+            [36m>[39m
+              [0mBETA[0m
+            [36m</span>[39m
+          [36m</h1>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-stone-500 mt-1"[39m
+          [36m>[39m
+            [0mReal-time EWMA Playback Analysis Engine[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex gap-4 items-center"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-colors"[39m
+            [33mtitle[39m=[32m"Reload Data"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-refresh-cw w-5 h-5"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 3v5h-5"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M8 16H3v5"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<main[39m
+        [33mclass[39m=[32m"mx-auto max-w-7xl p-8 grid grid-cols-12 gap-8 overflow-hidden"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"col-span-12 lg:col-span-3 space-y-6"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"p-6 bg-white rounded-xl shadow-sm border border-stone-200"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-2 mb-4"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-activity w-5 h-5 text-amber-600"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"text-lg font-bold text-stone-800"[39m
+              [36m>[39m
+                [0mMachine Selector[0m
+              [36m</h2>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"text-xs text-stone-500 mb-4 font-medium"[39m
+            [36m>[39m
+              [0mClick a bar to cycle through machines grouped by Native SNR range.[0m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-40 w-full cursor-pointer"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mstyle[39m=[32m"width: 800px; height: 600px;"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"recharts-wrapper"[39m
+                  [33mstyle[39m=[32m"position: relative; cursor: default;"[39m
+                [36m/>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"p-6 bg-white rounded-xl shadow-sm border border-stone-200"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-2 mb-6"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-sliders-horizontal w-5 h-5 text-amber-600"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[...
+
+ [31m??[39m src/App.test.jsx [2m([22m[2m5 tests[22m[2m | [22m[31m4 failed[39m[2m)[22m[33m 4204[2mms[22m[39m
+[31m       [31m?[31m should render main application headers without crashing[39m[33m 1083[2mms[22m[39m
+[31m       [31m?[31m should update SNR Multiplier text when slider changes[39m[33m 1025[2mms[22m[39m
+[31m       [31m?[31m should update Lambda text when slider changes[39m[33m 1033[2mms[22m[39m
+[31m       [31m?[31m should update Sampling Rate percentage text when slider changes[39m[33m 1027[2mms[22m[39m
+       [32m??[39m should gracefully handle fetch errors[32m 34[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m4 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (5)[39m
+[2m   Start at [22m 23:46:05
+[2m   Duration [22m 5.40s[2m (transform 80ms, setup 0ms, import 520ms, tests 4.20s, environment 549ms)[22m
+
