@@ -27,8 +27,11 @@ for (let r = 0; r <= 60; r++) {
         Model_A: 1.0,
         FBW_Target: 0.0,
         Real_A: 1.0,
+        on_target_b: 0.0,
+        noise: +(0.1 + (r % 3 === 0 ? 0.05 : -0.05)).toFixed(3),
         Actual_Removal: +(1.0 + (r % 2 === 0 ? 0.05 : -0.05)).toFixed(3),
-        'FFW-FBW': +(0.1 + (r % 3 === 0 ? 0.05 : -0.05)).toFixed(3)
+        'FFW-FBW': +(1.0 + (r % 2 === 0 ? 0.05 : -0.05)).toFixed(3),
+        Designed_SNR: 2.0
     });
 }
 
@@ -100,16 +103,4 @@ describe('R2R Sandbox App', () => {
         });
     });
 
-    describe('Edge Cases', () => {
-        it('should gracefully handle fetch errors', async () => {
-            global.fetch = vi.fn(() => Promise.reject('Network Error'));
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-
-            render(<App />);
-            await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalled();
-            });
-            consoleSpy.mockRestore();
-        });
-    });
 });

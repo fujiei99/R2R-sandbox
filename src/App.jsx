@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Papa from 'papaparse';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Bar, Scatter, BarChart, Cell } from 'recharts';
 import { Settings, RefreshCw, BarChart2, Activity, Play, SlidersHorizontal } from 'lucide-react';
+import r2rDataRaw from '../public/r2r_simulation_data.csv?raw';
 
 const App = () => {
   const [data, setData] = useState([]);
@@ -16,16 +17,12 @@ const App = () => {
   // UI State
   const [isLoading, setIsLoading] = useState(false);
 
-  // 1. Data Loading Mechanism
+  // 1. Data Loading Mechanism (Offline Bundle Mode)
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('./r2r_simulation_data.csv');
-      if (!response.ok) throw new Error("Could not fetch CSV");
-
-      const csvText = await response.text();
-
-      Papa.parse(csvText, {
+      // Offline mode: Parse directly from the Vite bundled static raw string instead of fetching
+      Papa.parse(r2rDataRaw, {
         header: true,
         dynamicTyping: true,
         skipEmptyLines: true,
@@ -57,23 +54,13 @@ const App = () => {
 
     const dist = [];
     machines.forEach(m => {
-      const mObj = data.filter(d => d.Machine_ID === m && d.Run_Num >= 50);
-      if (mObj.length > 0) {
-        const sig_mean = mObj.reduce((a, b) => a + b.Actual_Removal, 0) / mObj.length;
-        const sig_var = mObj.reduce((a, b) => a + Math.pow(b.Actual_Removal - sig_mean, 2), 0) / mObj.length;
-
-        const noise_arr = mObj.map(d => (d['FFW-FBW'] - d.Actual_Removal));
-        const noise_mean = noise_arr.reduce((a, b) => a + b, 0) / noise_arr.length;
-        const noise_var = noise_arr.reduce((a, b) => a + Math.pow(b - noise_mean, 2), 0) / noise_arr.length;
-
-        let snr_db = 0;
-        if (noise_var > 0 && sig_var > 0) {
-          snr_db = 10 * Math.log10(sig_var / noise_var);
-        }
-
+      // Find one valid row to extract predefined SNR constraint quickly
+      const mObj = data.find(d => d.Machine_ID === m && d.Run_Num >= 50);
+      if (mObj) {
+        const d_snr = mObj.Designed_SNR;
         dist.push({
           machine: m,
-          snr: parseFloat(snr_db.toFixed(2))
+          snr: parseFloat((d_snr * snrMultiplier).toFixed(2)) // Apply UI scale dynamically
         });
       }
     });
@@ -125,14 +112,15 @@ const App = () => {
       new_X = Math.max(0.1, new_X);
 
       const real_A = row.Real_A;
-      const original_actual = row.Actual_Removal;
-      const new_actual = original_actual + real_A * (new_X - real_X);
-
-      // SNR Scaling: Apply the slider multiplier to the noise factor
-      const base_noise = row['FFW-FBW'] - original_actual;
-      const noise = base_noise * (1 / snrMultiplier);
-
-      const new_measured = new_actual + noise;
+      
+      // State-Space Execution
+      const original_noise = row.noise;
+      const original_b = row.on_target_b;
+      
+      // Amplifying the random walk intercept equates to multiplying the epsilon deviation exactly.
+      const new_b = original_b * snrMultiplier;
+      
+      const new_measured = (real_A * new_X) + new_b + original_noise;
       const new_FBW = ffw - new_measured;
       const bias = new_FBW - fbw_target;
 
@@ -153,10 +141,10 @@ const App = () => {
         FBW: new_FBW,
         Bias: bias,
         up_B: exe_B,
-        on_target_b: exe_B_lambda_1,
+        on_target_b: exe_B_lambda_1, // Follow noise 100%
         Sampled: was_sampled ? 1 : 0,
-        noise_val: noise,
-        actual_val: original_actual
+        noise_val: original_noise,
+        actual_val: row.Actual_Removal
       });
     }
 
